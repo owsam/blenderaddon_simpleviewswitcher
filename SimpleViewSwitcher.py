@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Simple View Switcher",
     "author": "Osamu Watanabe",
-    "version": (1, 2),
+    "version": (1, 3),
     "blender": (2, 80, 0),
     "location": "View3D > Sidebar > Simple View Switcher Tab / Right Click Menu / Header",
     "description": "Switch views easily from toolbar, right-click menu, and header with optional icon display.",
@@ -63,6 +63,8 @@ class VIEW3D_PT_ViewButtons(bpy.types.Panel):
         row.operator("view3d.view_axis", text="Bottom").type = 'BOTTOM'
         row = layout.row()
         row.operator("view3d.view_camera", text="Camera View")
+        row = layout.row()
+        row.operator("view3d.view_selected", text="Focus on Selection", icon="VIEWZOOM")
 
 class VIEW3D_MT_view_switcher_menu(bpy.types.Menu):
     bl_label = "Simple View Switcher"
@@ -77,6 +79,7 @@ class VIEW3D_MT_view_switcher_menu(bpy.types.Menu):
         layout.operator("view3d.view_axis", text="Top").type = 'TOP'
         layout.operator("view3d.view_axis", text="Bottom").type = 'BOTTOM'
         layout.operator("view3d.view_camera", text="Camera View")
+        layout.operator("view3d.view_selected", text="Focus on Selection")
 
 def menu_func(self, context):
     self.layout.separator()
@@ -97,12 +100,14 @@ def draw_view_switcher_in_header(self, context):
         row.operator("view3d.view_axis", text="", icon='TRIA_RIGHT').type = 'RIGHT'
         row.operator("view3d.view_axis", text="", icon='TRIA_DOWN').type = 'FRONT'
         row.operator("view3d.view_camera", text="", icon='CAMERA_DATA')
+        row.operator("view3d.view_selected", text="", icon="VIEWZOOM")
     else:
         row.operator("view3d.view_axis", text="Top").type = 'TOP'
         row.operator("view3d.view_axis", text="Left").type = 'LEFT'
         row.operator("view3d.view_axis", text="Right").type = 'RIGHT'
         row.operator("view3d.view_axis", text="Front").type = 'FRONT'
         row.operator("view3d.view_camera", text="Camera")
+        row.operator("view3d.view_selected", text="Focus on Selection")
 
 classes = [
     ViewSwitcherPreferences,
