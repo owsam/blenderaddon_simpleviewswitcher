@@ -64,9 +64,7 @@ class VIEW3D_PT_ViewButtons(bpy.types.Panel):
         row = layout.row()
         row.operator("view3d.view_camera", text="Camera View")
         row = layout.row()
-        row.operator("view3d.view_selected", text="Focus on Selection", icon="VIEWZOOM")
-        row = layout.row()
-        row.operator("view3d.center_view_to_selection", text="Center View to Selection", icon="PIVOT_CURSOR")
+        row.operator("view3d.view_selected", text="Focus on Selection", icon="VIEWZOOM").use_all_regions = False
 
 class VIEW3D_MT_view_switcher_menu(bpy.types.Menu):
     bl_label = "Simple View Switcher"
@@ -81,8 +79,7 @@ class VIEW3D_MT_view_switcher_menu(bpy.types.Menu):
         layout.operator("view3d.view_axis", text="Top").type = 'TOP'
         layout.operator("view3d.view_axis", text="Bottom").type = 'BOTTOM'
         layout.operator("view3d.view_camera", text="Camera View")
-        layout.operator("view3d.view_selected", text="Focus on Selection", icon="VIEWZOOM")
-        layout.operator("view3d.center_view_to_selection", text="Center View to Selection", icon="PIVOT_CURSOR")
+        layout.operator("view3d.view_selected", text="Focus on Selection", icon="VIEWZOOM").use_all_regions = False
 
 def menu_func(self, context):
     self.layout.separator()
@@ -103,30 +100,16 @@ def draw_view_switcher_in_header(self, context):
         row.operator("view3d.view_axis", text="", icon='TRIA_RIGHT').type = 'RIGHT'
         row.operator("view3d.view_axis", text="", icon='TRIA_DOWN').type = 'FRONT'
         row.operator("view3d.view_camera", text="", icon='CAMERA_DATA')
-        row.operator("view3d.view_selected", text="", icon='VIEWZOOM')
-        row.operator("view3d.center_view_to_selection", text="", icon='PIVOT_CURSOR')
+        row.operator("view3d.view_selected", text="", icon='VIEWZOOM').use_all_regions = False
     else:
         row.operator("view3d.view_axis", text="Top").type = 'TOP'
         row.operator("view3d.view_axis", text="Left").type = 'LEFT'
         row.operator("view3d.view_axis", text="Right").type = 'RIGHT'
         row.operator("view3d.view_axis", text="Front").type = 'FRONT'
         row.operator("view3d.view_camera", text="Camera")
-        row.operator("view3d.view_selected", text="Focus")
-        row.operator("view3d.center_view_to_selection", text="Center")
-
-class VIEW3D_OT_center_view_to_selection(bpy.types.Operator):
-    bl_idname = "view3d.center_view_to_selection"
-    bl_label = "Center View to Selection"
-    bl_description = "Move view center to selected elements without changing zoom"
-
-    def execute(self, context):
-        bpy.ops.view3d.snap_cursor_to_selected()
-        bpy.ops.view3d.view_center_cursor()
-        return {'FINISHED'}
-
+        row.operator("view3d.view_selected", text="Focus").use_all_regions = False
 
 classes = [
-    VIEW3D_OT_center_view_to_selection,
     ViewSwitcherPreferences,
     VIEW3D_PT_ViewButtons,
     VIEW3D_MT_view_switcher_menu,
