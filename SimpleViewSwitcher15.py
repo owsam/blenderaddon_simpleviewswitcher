@@ -3,32 +3,30 @@ bl_info = {
     "author": "Osamu Watanabe",
     "version": (1, 5),
     "blender": (2, 80, 0),
-    "location": "View3D > Sidebar > Simple View Switcher Tab / Right Click Menu / Header",
-    "description": "Switch views and toggle Wireframe / Face Orientation",
+    "location": "View3D > Sidebar / Header",
+    "description": "Switch views, toggle wire display and face orientation overlay.",
     "category": "3D View",
 }
 
 import bpy
 
-# =========================
+# ----------------------------
 # Preferences
-# =========================
+# ----------------------------
 class ViewSwitcherPreferences(bpy.types.AddonPreferences):
     bl_idname = __name__
 
     use_icons: bpy.props.BoolProperty(
         name="Use Icons",
-        description="Display icons instead of text in the header",
         default=True,
     )
 
     display_location: bpy.props.EnumProperty(
         name="Display Location",
-        description="Where to show the view switcher buttons",
         items=[
-            ('HEADER', "Header", "Show in the 3D View Header"),
-            ('SIDEBAR', "Sidebar", "Show in the Sidebar Panel"),
-            ('BOTH', "Both", "Show in both places"),
+            ('HEADER', "Header", ""),
+            ('SIDEBAR', "Sidebar", ""),
+            ('BOTH', "Both", ""),
         ],
         default='HEADER'
     )
@@ -39,36 +37,47 @@ class ViewSwitcherPreferences(bpy.types.AddonPreferences):
         layout.prop(self, "display_location")
 
 
-# =========================
-# Operators
-# =========================
+# ----------------------------
+# Wire Toggle Operator
+# ----------------------------
 class VIEW3D_OT_toggle_wire(bpy.types.Operator):
     bl_idname = "view3d.toggle_wire"
-    bl_label = "Toggle Wireframe"
-    bl_description = "Toggle object wireframe display"
+    bl_label = "Toggle Wire"
+    bl_description = "Toggle Wireframe Overlay on selected object"
 
     def execute(self, context):
         obj = context.object
-        if obj:
-            obj.show_wire = not obj.show_wire
-            obj.show_all_edges = obj.show_wire
+        if obj is None:
+            self.report({'WARNING'}, "No active object")
+            return {'CANCELLED'}
+
+        obj.show_wire = not obj.show_wire
+        obj.show_all_edges = obj.show_wire
         return {'FINISHED'}
 
 
+# ----------------------------
+# Face Orientation Toggle Operator
+# ----------------------------
 class VIEW3D_OT_toggle_face_orientation(bpy.types.Operator):
     bl_idname = "view3d.toggle_face_orientation"
     bl_label = "Toggle Face Orientation"
-    bl_description = "Toggle face orientation overlay"
+    bl_description = "Toggle Face Orientation Overlay in the active 3D View"
 
     def execute(self, context):
-        overlay = context.space_data.overlay
+        space = context.space_data
+        if space.type != 'VIEW_3D':
+            self.report({'WARNING'}, "Not in 3D View")
+            return {'CANCELLED'}
+
+        overlay = space.overlay
         overlay.show_face_orientation = not overlay.show_face_orientation
         return {'FINISHED'}
 
 
-# =========================
+# ----------------------------
 # Sidebar Panel
-# =========================
+# ----------------------------
 class VIEW3D_PT_ViewButtons(bpy.types.Panel):
     bl_label = "Simple View Switcher"
     bl_idname = "VIEW3D_PT_view_switcher"
@@ -83,54 +92,49 @@ class VIEW3D_PT_ViewButtons(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        row = layout.row()
-        row.operator("view3d.view_axis", text="Front").type = 'FRONT'
-        row = layout.row()
-        row.operator("view3d.view_axis", text="Back").type = 'BACK'
-        row = layout.row()
-        row.operator("view3d.view_axis", text="Right").type = 'RIGHT'
-        row = layout.row()
-        row.operator("view3d.view_axis", text="Left").type = 'LEFT'
-        row = layout.row()
-        row.operator("view3d.view_axis", text="Top").type = 'TOP'
-        row = layout.row()
-        row.operator("view3d.view_axis", text="Bottom").type = 'BOTTOM'
-        row = layout.row()
-        row.operator("view3d.view_camera", text="Camera View")
-        row = layout.row()
-        row.operator("view3d.view_selected", text="Focus on Selection", icon="VIEWZOOM")
 
-        layout.separator()
-
-        obj = context.object
-        icon_wire = "SHADING_WIRE" if obj and obj.show_wire else "SHADING_SOLID"
-        layout.operator("view3d.toggle_wire", text="Wireframe", icon=icon_wire)
-
-        overlay = context.space_data.overlay
-        icon_face = "FACESEL" if overlay.show_face_orientation else "NORMALS_FACE"
-        layout.operator("view3d.toggle_face_orientation", text="Face Orientation", icon=icon_face)
-
-
-# =========================
-# Right Click Menu
-# =========================
-class VIEW3D_MT_view_switcher_menu(bpy.types.Menu):
-    bl_label = "Simple View Switcher"
-    bl_idname = "VIEW3D_MT_view_switcher_menu"
-
-    def draw(self, context):
-        layout = self.layout
+        layout.label(text="View")
         layout.operator("view3d.view_axis", text="Front").type = 'FRONT'
         layout.operator("view3d.view_axis", text="Back").type = 'BACK'
         layout.operator("view3d.view_axis", text="Right").type = 'RIGHT'
         layout.operator("view3d.view_axis", text="Left").type = 'LEFT'
         layout.operator("view3d.view_axis", text="Top").type = 'TOP'
         layout.operator("view3d.view_axis", text="Bottom").type = 'BOTTOM'
-        layout.operator("view3d.view_camera", text="Camera View")
-        layout.operator("view3d.view_selected", text="Focus on Selection", icon="VIEWZOOM")
+
         layout.separator()
+        layout.operator("view3d.view_camera", text="Camera View")
+        layout.operator("view3d.view_selected", text="Focus", icon="VIEWZOOM")
+
+        layout.separator()
+
+        obj = context.object
+
+        # Wire Toggle Button
+        if obj and obj.show_wire:
+            layout.operator("view3d.toggle_wire", text="Wire OFF", icon="SHADING_WIRE")
+        else:
+            layout.operator("view3d.toggle_wire", text="Wire ON", icon="SHADING_SOLID")
+
+        # Face Orientation Toggle Button
+        space = context.space_data
+        if space and space.type == 'VIEW_3D':
+            if space.overlay.show_face_orientation:
+                layout.operator("view3d.toggle_face_orientation", text="Face Orientation OFF", icon="RESTRICT_VIEW_OFF")
+            else:
+                layout.operator("view3d.toggle_face_orientation", text="Face Orientation ON", icon="RESTRICT_VIEW_ON")
+
+
+# ----------------------------
+# Context Menu
+# ----------------------------
+class VIEW3D_MT_view_switcher_menu(bpy.types.Menu):
+    bl_label = "Simple View Switcher"
+    bl_idname = "VIEW3D_MT_view_switcher_menu"
+
+    def draw(self, context):
+        layout = self.layout
         layout.operator("view3d.toggle_wire", icon="SHADING_WIRE")
-        layout.operator("view3d.toggle_face_orientation", icon="FACESEL")
+        layout.operator("view3d.toggle_face_orientation", icon="OVERLAY")
 
 
 def menu_func(self, context):
@@ -138,9 +142,9 @@ def menu_func(self, context):
     self.layout.menu(VIEW3D_MT_view_switcher_menu.bl_idname)
 
 
-# =========================
+# ----------------------------
 # Header
-# =========================
+# ----------------------------
 def draw_view_switcher_in_header(self, context):
     prefs = bpy.context.preferences.addons[__name__].preferences
     if prefs.display_location not in {'HEADER', 'BOTH'}:
@@ -158,24 +162,27 @@ def draw_view_switcher_in_header(self, context):
         row.operator("view3d.view_camera", text="", icon='CAMERA_DATA')
         row.operator("view3d.view_selected", text="", icon='VIEWZOOM')
 
-        # Wire toggle
         obj = context.object
-        icon_wire = "SHADING_WIRE" if obj and obj.show_wire else "SHADING_SOLID"
-        row.operator("view3d.toggle_wire", text="", icon=icon_wire)
+        if obj and obj.show_wire:
+            row.operator("view3d.toggle_wire", text="", icon="SHADING_SOLID")
+        else:
+            row.operator("view3d.toggle_wire", text="", icon="SHADING_WIRE")
 
-        # Face Orientation toggle
-        overlay = context.space_data.overlay
-        icon_face = "FACESEL" if overlay.show_face_orientation else "NORMALS_FACE"
-        row.operator("view3d.toggle_face_orientation", text="", icon=icon_face)
+        space = context.space_data
+        if space and space.type == 'VIEW_3D':
+            if space.overlay.show_face_orientation:
+                row.operator("view3d.toggle_face_orientation", text="", icon="RESTRICT_VIEW_OFF")
+            else:
+                row.operator("view3d.toggle_face_orientation", text="", icon="RESTRICT_VIEW_ON")
 
     else:
-        row.operator("view3d.toggle_wire", text="Wire")
-        row.operator("view3d.toggle_face_orientation", text="Face")
+        row.operator("view3d.toggle_wire", text="Wire Toggle")
+        row.operator("view3d.toggle_face_orientation", text="Face Orientation Toggle")
 
 
-# =========================
+# ----------------------------
 # Register
-# =========================
+# ----------------------------
 classes = [
     ViewSwitcherPreferences,
     VIEW3D_OT_toggle_wire,
